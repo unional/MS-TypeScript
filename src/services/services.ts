@@ -3601,7 +3601,29 @@ module ts {
 
             filename = normalizeSlashes(filename);
             var sourceFile = getSourceFile(filename);
+            var sourceText = sourceFile.text;
 
+            var result = getOccurrencesAtPositionCore(sourceFile, position);
+            forEach(result, entry => {
+                if (entry.fileName !== filename) {
+                    var message = "getOccurrences for ('" + filename + "'," + position + ") " +
+                        "found result in wrong file ('" + entry.fileName + "'," + entry.textSpan.start() + ")";
+
+                    Debug.fail(message);
+                }
+
+                if (entry.textSpan.start() < 0 || entry.textSpan.end() > sourceText.length) {
+                    var span = entry.textSpan;
+                    var message = "getOccurrences for ('" + filename + "'," + position + ") " +
+                        "found result out of bounds (FileLength=" + sourceText.length + ",Start=" + span.start() + ",End=" + span.end() + ")";
+                    Debug.fail(message);
+                }
+            });
+
+            return result;
+        }
+
+        function getOccurrencesAtPositionCore(sourceFile: SourceFile, position: number): ReferenceEntry[]{
             var node = getTouchingWord(sourceFile, position);
             if (!node) {
                 return undefined;
@@ -3731,7 +3753,7 @@ module ts {
                         
                         if (shouldHighlightNextKeyword) {
                             result.push({
-                                fileName: filename,
+                                fileName: sourceFile.filename,
                                 textSpan: TextSpan.fromBounds(elseKeyword.getStart(), ifKeyword.end),
                                 isWriteAccess: false
                             });
