@@ -2474,7 +2474,7 @@ module ts {
             let declaration = <ClassDeclaration>getDeclarationOfKind(type.symbol, SyntaxKind.ClassDeclaration);
             let baseTypeNode = getClassExtendsHeritageClauseElement(declaration);
             if (baseTypeNode) {
-                let baseType = getTypeFromHeritageClauseElement(baseTypeNode);
+                let baseType = getTypeFromTypeNode(baseTypeNode);
                 if (baseType !== unknownType) {
                     if (getTargetType(baseType).flags & TypeFlags.Class) {
                         if (type !== baseType && !hasBaseType(<InterfaceType>baseType, type)) {
@@ -2496,7 +2496,7 @@ module ts {
             for (let declaration of type.symbol.declarations) {
                 if (declaration.kind === SyntaxKind.InterfaceDeclaration && getInterfaceBaseTypeNodes(<InterfaceDeclaration>declaration)) {
                     for (let node of getInterfaceBaseTypeNodes(<InterfaceDeclaration>declaration)) {
-                        let baseType = getTypeFromHeritageClauseElement(node);
+                        let baseType = getTypeFromTypeNode(node);
 
                         if (baseType !== unknownType) {
                             if (getTargetType(baseType).flags & (TypeFlags.Class | TypeFlags.Interface)) {
@@ -3378,14 +3378,6 @@ module ts {
             }
         }
 
-        function getTypeFromTypeReference(node: TypeReferenceNode): Type {
-            return getTypeFromTypeReferenceOrHeritageClauseElement(node);
-        }
-
-        function getTypeFromHeritageClauseElement(node: HeritageClauseElement): Type {
-            return getTypeFromTypeReferenceOrHeritageClauseElement(node);
-        }
-
         function getTypeFromTypeReferenceOrHeritageClauseElement(node: TypeReferenceNode | HeritageClauseElement): Type {
             let links = getNodeLinks(node);
             if (!links.resolvedType) {
@@ -3686,9 +3678,8 @@ module ts {
                 case SyntaxKind.StringLiteral:
                     return getTypeFromStringLiteral(<StringLiteral>node);
                 case SyntaxKind.TypeReference:
-                    return getTypeFromTypeReference(<TypeReferenceNode>node);
                 case SyntaxKind.HeritageClauseElement:
-                    return getTypeFromHeritageClauseElement(<HeritageClauseElement>node);
+                    return getTypeFromTypeReferenceOrHeritageClauseElement(<TypeReferenceNode | HeritageClauseElement>node);
                 case SyntaxKind.TypeQuery:
                     return getTypeFromTypeQueryNode(<TypeQueryNode>node);
                 case SyntaxKind.ArrayType:
@@ -8412,7 +8403,7 @@ module ts {
             // Grammar checking
             checkGrammarTypeArguments(node, node.typeArguments);
 
-            let type = getTypeFromTypeReferenceOrHeritageClauseElement(node);
+            let type = getTypeFromTypeNode(node);
             if (type !== unknownType && node.typeArguments) {
                 // Do type argument local checks only if referenced type is successfully resolved
                 let len = node.typeArguments.length;
@@ -10016,7 +10007,7 @@ module ts {
 
                     checkHeritageClauseElement(typeRefNode);
                     if (produceDiagnostics) {
-                        let t = getTypeFromHeritageClauseElement(typeRefNode);
+                        let t = getTypeFromTypeNode(typeRefNode);
                         if (t !== unknownType) {
                             let declaredType = (t.flags & TypeFlags.Reference) ? (<TypeReference>t).target : t;
                             if (declaredType.flags & (TypeFlags.Class | TypeFlags.Interface)) {
@@ -11706,7 +11697,7 @@ module ts {
             // * The serialized type of a TypeReference with a value declaration is its entity name.
             // * The serialized type of a TypeReference with a call or construct signature is "Function".
             // * The serialized type of any other type is "Object".
-            let type = getTypeFromTypeReference(node);
+            let type = getTypeFromTypeNode(node);
             if (type.flags & TypeFlags.Void) {
                 return "void 0";
             }
