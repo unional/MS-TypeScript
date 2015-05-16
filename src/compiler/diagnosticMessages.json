@@ -631,7 +631,7 @@
         "category": "Error",
         "code": 1203
     },
-    "Cannot compile modules into 'commonjs', 'amd', 'system' or 'umd' when targeting 'ES6' or higher.": {
+    "Cannot compile modules into 'commonjs', 'amd', 'system', 'umd', or 'umdx' when targeting 'ES6' or higher.": {
         "category": "Error",
         "code": 1204
     },
@@ -1849,7 +1849,10 @@
         "category": "Error",
         "code": 5051
     },
-
+    "Option 'umdBaseDir' must be specified for umdx": {
+        "category": "Error",
+        "code": 5052
+    },
     "Concatenate and emit output to single file.": {
         "category": "Message",
         "code": 6001
@@ -1894,7 +1897,7 @@
         "category": "Message",
         "code": 6015
     },
-    "Specify module code generation: 'commonjs', 'amd', 'system' or 'umd'": {
+    "Specify module code generation: 'commonjs', 'amd', 'system', 'umd', or 'umdx'": {
         "category": "Message",
         "code": 6016
     },
@@ -1978,7 +1981,7 @@
         "category": "Error",
         "code": 6045
     },
-    "Argument for '--module' option must be 'commonjs', 'amd', 'system' or 'umd'.": {
+    "Argument for '--module' option must be 'commonjs', 'amd', 'system', 'umd', or 'umdx'.": {
         "category": "Error",
         "code": 6046
     },
@@ -2045,6 +2048,10 @@
     "Argument for '--newLine' option must be 'CRLF' or 'LF'.": {
         "category": "Error", 
         "code": 6062
+    },
+    "Specifies the location where namespace should begin for umdx.": {
+        "category": "Message",
+        "code": 6063
     },
     "Option 'experimentalDecorators' must also be specified when option 'emitDecoratorMetadata' is specified.": {
         "category": "Error",

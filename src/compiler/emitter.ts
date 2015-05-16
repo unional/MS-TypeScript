@@ -5638,6 +5638,34 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 emitExportEquals(/*emitAsReturn*/ false);
             }
 
+            function emitUMDXModule(node: SourceFile, startIndex: number) {
+                collectExternalModuleInfo(node);
+
+                writeLine();
+                write("umd(function(define) {");
+                writeLine();
+                increaseIndent();
+                write("define(");
+                if (node.amdModuleName) {
+                    write("\"" + node.amdModuleName + "\", ");
+                }
+                emitAMDDependencies(node, /*includeNonAmdDependencies*/ true);
+                write(") {");
+                increaseIndent();
+                emitExportStarHelper();
+                emitCaptureThisForNodeIfNecessary(node);
+                emitLinesStartingAt(node.statements, startIndex);
+                emitTempDeclarations(/*newLine*/ true);
+                emitExportEquals(/*emitAsReturn*/ true);
+                decreaseIndent();
+                writeLine();
+                write("});");
+                decreaseIndent();
+                writeLine();                
+                var modulePath = currentSourceFile.fileName.slice(compilerOptions.umdBaseDir.length+1, currentSourceFile.fileName.length-3).replace(/\/|\\/g, ".");
+                write("}, \"" + modulePath + "\", require, exports, module);");
+            }
+
             function emitUMDModule(node: SourceFile, startIndex: number) {
                 collectExternalModuleInfo(node);
 
@@ -5756,6 +5784,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     }
                     else if (compilerOptions.module === ModuleKind.UMD) {
                         emitUMDModule(node, startIndex);
+                    }
+                    else if (compilerOptions.module === ModuleKind.UMDX) {
+                        emitUMDXModule(node, startIndex);
                     }
                     else {
                         emitCommonJSModule(node, startIndex);

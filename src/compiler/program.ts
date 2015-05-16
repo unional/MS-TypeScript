@@ -604,7 +604,7 @@ module ts {
 
             // Cannot specify module gen target when in es6 or above
             if (options.module && languageVersion >= ScriptTarget.ES6) {
-                diagnostics.add(createCompilerDiagnostic(Diagnostics.Cannot_compile_modules_into_commonjs_amd_system_or_umd_when_targeting_ES6_or_higher));
+                diagnostics.add(createCompilerDiagnostic(Diagnostics.Cannot_compile_modules_into_commonjs_amd_system_umd_or_umdx_when_targeting_ES6_or_higher));
             }
 
             // there has to be common source directory if user specified --outdir || --sourceRoot
@@ -639,6 +639,10 @@ module ts {
                 if (options.declaration) {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_noEmit_cannot_be_specified_with_option_declaration));
                 }
+            }
+
+            if (options.module === ModuleKind.UMDX && !options.umdBaseDir) {
+                diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_umdBaseDir_must_be_specified_for_umdx));
             }
             
             if (options.emitDecoratorMetadata &&
