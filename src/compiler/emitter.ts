@@ -5640,7 +5640,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 
             function emitUMDXModule(node: SourceFile, startIndex: number) {
                 collectExternalModuleInfo(node);
-
+                
                 writeLine();
                 write("umd(function(define) {");
                 writeLine();
@@ -5661,8 +5661,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 writeLine();
                 write("});");
                 decreaseIndent();
-                writeLine();                
-                var modulePath = currentSourceFile.fileName.slice(compilerOptions.umdBaseDir.length+1, currentSourceFile.fileName.length-3).replace(/\/|\\/g, ".");
+                writeLine();
+                var baseDir = compilerOptions.umdBaseDir || host.getCommonSourceDirectory();                
+                var modulePath = currentSourceFile.fileName.slice(baseDir.length + 1, currentSourceFile.fileName.length - 3).replace(/\/|\\/g, ".");
                 write("}, \"" + modulePath + "\", require, exports, module);");
             }
 
