@@ -1849,6 +1849,10 @@
         "category": "Error",
         "code": 5051
     },
+    "Option 'umdBaseDir' must be specified for umdx": {
+        "category": "Error",
+        "code": 5052
+    },
     "Concatenate and emit output to single file.": {
         "category": "Message",
         "code": 6001

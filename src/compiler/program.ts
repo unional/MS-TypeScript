@@ -630,11 +630,7 @@ module ts {
                     commonSourceDirectory += directorySeparator;
                 }
             }
-            else {
-                    // Compute the commonSourceDirectory from the input files
-                    commonSourceDirectory = computeCommonSourceDirectory(files);
-            }
-                
+
             if (options.noEmit) {
                 if (options.out || options.outDir) {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_noEmit_cannot_be_specified_with_option_out_or_outDir));
@@ -644,11 +640,11 @@ module ts {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_noEmit_cannot_be_specified_with_option_declaration));
                 }
             }
-            }
             
             if (options.emitDecoratorMetadata &&
                 !options.experimentalDecorators) {
                 diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_experimentalDecorators_must_also_be_specified_when_option_emitDecoratorMetadata_is_specified));
+            }
         }
     }
 }
