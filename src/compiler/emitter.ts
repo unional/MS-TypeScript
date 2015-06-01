@@ -5662,7 +5662,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 write("});");
                 decreaseIndent();
                 writeLine();
-                var baseDir = compilerOptions.umdBaseDir || sys.getCurrentDirectory();                
+                var baseDir = compilerOptions.umdBaseDir || sys.getCurrentDirectory();
                 var modulePath = currentSourceFile.fileName.slice(baseDir.length + 1, currentSourceFile.fileName.length - 3).replace(/\/|\\/g, ".");
                 modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
                 write("}, \"" + modulePath + "\", require, exports, module);");
