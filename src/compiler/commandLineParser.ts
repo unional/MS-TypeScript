@@ -61,10 +61,11 @@ module ts {
                 "amd": ModuleKind.AMD,
                 "system": ModuleKind.System,
                 "umd": ModuleKind.UMD,
+                "extjs5": ModuleKind.ExtJS5
             },
-            description: Diagnostics.Specify_module_code_generation_Colon_commonjs_amd_system_or_umd,
+            description: Diagnostics.Specify_module_code_generation_Colon_commonjs_amd_system_umd_or_extjs5,
             paramType: Diagnostics.KIND,
-            error: Diagnostics.Argument_for_module_option_must_be_commonjs_amd_system_or_umd
+            error: Diagnostics.Argument_for_module_option_must_be_commonjs_amd_system_umd_or_extjs5
         },
         {
             name: "newLine",

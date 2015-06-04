@@ -1301,6 +1301,7 @@ module ts {
         getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): number;
         isValidPropertyAccess(node: PropertyAccessExpression | QualifiedName, propertyName: string): boolean;
         getAliasedSymbol(symbol: Symbol): Symbol;
+        resolveName(location: Node, name: string, meaning: SymbolFlags, nameNotFoundMessage: DiagnosticMessage, nameArg: string | Identifier): Symbol;
         getExportsOfModule(moduleSymbol: Symbol): Symbol[];
 
         // Should not be called directly.  Should only be accessed through the Program instance.
@@ -1419,6 +1420,10 @@ module ts {
         serializeTypeOfNode(node: Node, getGeneratedNameForNode: (Node: Node) => string): string | string[];
         serializeParameterTypesOfNode(node: Node, getGeneratedNameForNode: (Node: Node) => string): (string | string[])[];
         serializeReturnTypeOfNode(node: Node, getGeneratedNameForNode: (Node: Node) => string): string | string[];
+        getFullyQualifiedName(symbol: Symbol) : string;
+        getTypeFromTypeNode(node : TypeNode) : Type;
+        getNodeLinks(node : Node) : NodeLinks;
+        getSuperContainer(node: Node, includeFunctions: boolean): Node ;
     }
 
     export const enum SymbolFlags {
@@ -1835,7 +1840,7 @@ module ts {
         AMD = 2,
         UMD = 3,
         System = 4,
-        ExtJS = 6
+        ExtJS5 = 6
     }
 
     export const enum NewLineKind {

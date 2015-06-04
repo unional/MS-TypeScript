@@ -608,7 +608,7 @@ module ts {
 
             // Cannot specify module gen target when in es6 or above
             if (options.module && languageVersion >= ScriptTarget.ES6) {
-                diagnostics.add(createCompilerDiagnostic(Diagnostics.Cannot_compile_modules_into_commonjs_amd_system_or_umd_when_targeting_ES6_or_higher));
+                diagnostics.add(createCompilerDiagnostic(Diagnostics.Cannot_compile_modules_into_commonjs_amd_system_umd_or_extjs5_when_targeting_ES6_or_higher));
             }
 
             // there has to be common source directory if user specified --outdir || --sourceRoot
@@ -645,7 +645,7 @@ module ts {
                 }
             }
 
-            if (options.module === ModuleKind.ExtJS) {
+            if (options.module === ModuleKind.ExtJS5) {
                 namespaceRoot = sys.resolvePath(options.namespaceRoot || ".");
             }
             

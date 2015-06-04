@@ -74,6 +74,7 @@ module ts {
             getAliasedSymbol: resolveAlias,
             getEmitResolver,
             getExportsOfModule: getExportsOfModuleAsArray,
+            resolveName,
         };
 
         let unknownSymbol = createSymbol(SymbolFlags.Property | SymbolFlags.Transient, "unknown");
@@ -12295,6 +12296,10 @@ module ts {
                 serializeTypeOfNode,
                 serializeParameterTypesOfNode,
                 serializeReturnTypeOfNode,
+                getFullyQualifiedName,
+                getTypeFromTypeNode,
+                getNodeLinks,
+                getSuperContainer,
             };
         }
 

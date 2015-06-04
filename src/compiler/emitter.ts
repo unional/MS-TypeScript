@@ -3848,7 +3848,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
             }
 
             function emitClassLikeDeclaration(node: ClassLikeDeclaration) {
-                if (languageVersion < ScriptTarget.ES6) {
+                if (compilerOptions.module === ModuleKind.ExtJS5) {
+                    emitExtClassDeclaration(node);
+                }
+                else if (languageVersion < ScriptTarget.ES6) {
                     emitClassLikeDeclarationBelowES6(node);
                 }
                 else {
@@ -5675,6 +5678,198 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 write("});");
             }
 
+            function emitExtJS5Module(node: SourceFile, startIndex: number) {
+                collectExternalModuleInfo(node);
+
+                emitLinesStartingAt(node.statements, startIndex);
+
+                // for (let i = startIndex; i < node.statements.length; i++) {
+                //     var statement = node.statements[i];
+                //     switch (statement.kind) {
+                //         case SyntaxKind.ClassDeclaration:
+                //             emitExtClassDeclaration(<ClassDeclaration>statement);
+                //             break;
+                //     }
+                // }
+            }
+
+            function emitExtClassDeclaration(node: ClassLikeDeclaration) {
+                if (!(node.flags & NodeFlags.Export)) {
+                    emitClassLikeDeclarationBelowES6(node);
+                }
+                else if (node.flags & NodeFlags.Default) {
+                    let modulePath = getModulePath(currentSourceFile.fileName);
+
+                    let baseClassNode = getClassExtendsHeritageClauseElement(node);
+                    let requireArray =  externalImports;
+                    let mixins: any;
+                    let constructorNode = node.members.filter(e => (e.kind & SyntaxKind.Constructor) === SyntaxKind.Constructor);
+                    let staticMembers = node.members.filter(e=> (e.flags & NodeFlags.Static) === NodeFlags.Static);
+                    let publicMembers = node.members.filter(e => (e.flags & NodeFlags.Public) === NodeFlags.Public);
+                    let privateMembers = node.members.filter(e => (e.flags & NodeFlags.Private) === NodeFlags.Private);
+
+                    // use to keep track do we need to `write(",")` in each section.
+                    let nodesToProcess = [requireArray.length, mixins, publicMembers.length, staticMembers.length,  privateMembers];
+
+                    write("Ext.define('" + modulePath + "', {");
+                    writeLine();
+                    increaseIndent();
+                    if (baseClassNode) {
+                        let baseClassPath = getTypeNodeFullName(baseClassNode)
+                        baseClassPath = baseClassPath? changeClassFullNameToCmdSupport(baseClassPath) : 'UnknownType'
+                        write('extend: "' + baseClassPath + '"');
+                        if (nodesToProcess.some(e => <boolean>e)) {
+                            write(',');
+                        }
+                        writeLine();
+                    }
+                    
+                    if (constructorNode.length) {
+                    }
+                    
+                    if (staticMembers.length) {
+                        // write("statics: {");
+                        // writeLine();
+                        // increaseIndent();
+                        
+                        // decreaseIndent();
+                        // writeLine();
+                        // write("},");                                                    
+                    }
+
+                    decreaseIndent();
+                    write("});");
+
+                    // let configLiteral = <ObjectLiteralExpression>createNode(SyntaxKind.ObjectLiteralExpression);
+                    // configLiteral.flags = NodeFlags.MultiLine;
+                    
+                    // configLiteral.properties = <NodeArray<ObjectLiteralElement>>[];
+
+                    // // Create elements in the right order: extend/override, require, mixins, statics, public, privates
+                    // if (baseClassNode) {
+                    //     configLiteral.properties.push(getBaseClassElement(baseClassNode));
+                    // }
+
+                    // // requrie
+                    
+                    // // mixins
+                    
+                    // // statics
+                    // let staticMembers = node.members.filter(e=> (e.flags & NodeFlags.Static) === NodeFlags.Static);
+                    
+                    // if (staticMembers.length) {
+                    //     configLiteral.properties.push(createStaticsLiteral(staticMembers));
+                    // }
+                                        
+                    // write("Ext.define('" + modulePath + "', ");
+                    // emitObjectLiteral(configLiteral);
+                    // write(");");
+                }
+                else {
+                    writeLine();
+                    write("'Only support export default class'");
+                }
+
+                function createStaticsLiteral(node: ClassElement[]): ObjectLiteralElement {
+                    var result = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                    result.flags = NodeFlags.MultiLine;
+                    let identifier = <Identifier>createNode(SyntaxKind.Identifier);
+                    identifier.text = "statics";
+                    result.name = identifier;
+                    var expression = <ObjectLiteralExpression>createNode(SyntaxKind.ObjectLiteralExpression);
+                    expression.flags = NodeFlags.MultiLine;
+                    expression.properties = <NodeArray<ObjectLiteralElement>>[];
+
+                    result.initializer = expression;                    
+                    forEach(node, e => {
+                        switch (e.kind) {
+                            case SyntaxKind.PropertyDeclaration:
+                                let source = <PropertyDeclaration>e;
+                                let element = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                                element.name = source.name;
+                                element.initializer = source.initializer;
+                                expression.properties.push(element)
+                        }
+                    });
+                    
+                    return result;
+                }
+
+                function getBaseClassElement(node: ExpressionWithTypeArguments) {
+                    let extendExpression = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                    let identifier = <Identifier>createNode(SyntaxKind.Identifier);
+                    identifier.text = "extend";
+                    extendExpression.name = identifier;
+                    var expression = <StringLiteral>createNode(SyntaxKind.StringLiteral);
+                    expression.text = getTypeNodeFullName(node);
+                    extendExpression.initializer = expression;
+                    return extendExpression;
+                }
+
+                function emitConstructor() {
+
+                }
+
+                function emitPrivateMembers() {
+
+                }
+
+                function emitStaticMembers() {}
+
+                function emitMixinsMembers() {}
+                function emitRequireArray() {}
+                function emitExtend() {
+                    // write("extend: '" + baseClassNode + "'");
+                }
+
+                //@extjsemitter helper
+                function changeClassFullNameToCmdSupport(name : string) : string;
+                function changeClassFullNameToCmdSupport(parts : string[]) : string;
+                function changeClassFullNameToCmdSupport(name : any) : string {
+                    var parts : string[] = name.split ? name.split('.') : name;
+                    //sencha cmd support > change ST to Ext > useful in projects with desktop an mobile app
+                    if (parts[0] === 'ST'){
+                        parts[0] = 'Ext';
+                    }
+                    return parts.join('.');
+                }
+            }
+
+            // function getBaseClassFullPath(node: ClassDeclaration): string {
+            //     var baseClassNode = getClassExtendsHeritageClauseElement(node);
+            //     return getTypeNodeFullName(baseClassNode);
+            // }
+
+            //@extjsemitter helper ///https://github.com/Microsoft/TypeScript/issues/1255
+            function getTypeNodeFullName(node : TypeNode) :  string {
+                var type = resolver.getTypeFromTypeNode(node);
+                var name : string;
+                
+                if (type && type.symbol){
+                    name = resolver.getFullyQualifiedName(type.symbol)
+                }
+                else {
+                    var links = resolver.getNodeLinks(node);
+                    if(links && links.resolvedSymbol){
+                        name = resolver.getFullyQualifiedName(links.resolvedSymbol);
+                    }
+                }
+                
+                return name;
+            }
+
+            function getModulePath(filename: string) {
+                var namespaceRoot = host.getNamespaceRoot();
+                var filePath = sys.resolvePath(filename);
+                var modulePath = filePath.slice(namespaceRoot.length + 1, filePath.length - 3).replace(/\/|\\/g, ".");
+                if (modulePath.indexOf(".") > 0) {
+                    // If the modulePath is not global (i.e. no namespace), Caps the first letter.
+                    modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
+                }
+
+                return modulePath;                
+            }
+
             function emitES6Module(node: SourceFile, startIndex: number) {
                 externalImports = undefined;
                 exportSpecifiers = undefined;
@@ -5768,6 +5963,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     }
                     else if (compilerOptions.module === ModuleKind.UMD) {
                         emitUMDModule(node, startIndex);
+                    }
+                    else if (compilerOptions.module === ModuleKind.ExtJS5) {
+                        emitExtJS5Module(node, startIndex);
                     }
                     else {
                         emitCommonJSModule(node, startIndex);

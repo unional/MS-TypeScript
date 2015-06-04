@@ -985,8 +985,8 @@ module Harness {
                                     options.module = ts.ModuleKind.CommonJS;
                                 } else if (setting.value.toLowerCase() === 'system') {
                                     options.module = ts.ModuleKind.System;
-                                } else if (setting.value.toLowerCase() === 'extjs') {
-                                    options.module = ts.ModuleKind.ExtJS;
+                                } else if (setting.value.toLowerCase() === 'extjs5') {
+                                    options.module = ts.ModuleKind.ExtJS5;
                                 } else if (setting.value.toLowerCase() === 'unspecified') {
                                     options.module = ts.ModuleKind.None;
                                 } else {
