@@ -5681,35 +5681,48 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
             function emitExtJS5Module(node: SourceFile, startIndex: number) {
                 collectExternalModuleInfo(node);
 
+                // TODO: may need to go through the statements manually instead of using emitLinesStartingAt()
+                // because Schema CMD would like to put code before `Ext.define` within the factory function,
+                // code after Ext.define under the post-callback.
+                // i.e. in TypeScript: 
+                // 
+                // var someLocalCode = "123";
+                // export default class MyClass {...}
+                // var somePoseCode = "234";
+                // MyClass.prototype.methodAlias = MyClass.prototype.originalMethod;
+                //
+                // Resulting in:
+                // 
+                // Ext.define("Mynamespce.x.y.MyClass", function() {
+                //    var someLocalCode = "123";
+                //    return {/* class definition */ };
+                // }, function() {
+                //    this.methodAlias = this.originalMethod;
+                // });
+                // 
                 emitLinesStartingAt(node.statements, startIndex);
-
-                // for (let i = startIndex; i < node.statements.length; i++) {
-                //     var statement = node.statements[i];
-                //     switch (statement.kind) {
-                //         case SyntaxKind.ClassDeclaration:
-                //             emitExtClassDeclaration(<ClassDeclaration>statement);
-                //             break;
-                //     }
-                // }
             }
 
             function emitExtClassDeclaration(node: ClassLikeDeclaration) {
                 if (!(node.flags & NodeFlags.Export)) {
                     emitClassLikeDeclarationBelowES6(node);
                 }
-                else if (node.flags & NodeFlags.Default) {
+                else if (!(node.flags & NodeFlags.Default)) {
+                    writeLine();
+                    write("'Only support export default class'");
+                }
+                else {
                     let modulePath = getModulePath(currentSourceFile.fileName);
 
                     let baseClassNode = getClassExtendsHeritageClauseElement(node);
-                    let requireArray =  externalImports;
                     let mixins: any;
-                    let constructorNode = node.members.filter(e => (e.kind & SyntaxKind.Constructor) === SyntaxKind.Constructor);
+                    let constructorNodes = node.members.filter(e => (e.kind & SyntaxKind.Constructor) === SyntaxKind.Constructor);
                     let staticMembers = node.members.filter(e=> (e.flags & NodeFlags.Static) === NodeFlags.Static);
                     let publicMembers = node.members.filter(e => (e.flags & NodeFlags.Public) === NodeFlags.Public);
                     let privateMembers = node.members.filter(e => (e.flags & NodeFlags.Private) === NodeFlags.Private);
-
+                    
                     // use to keep track do we need to `write(",")` in each section.
-                    let nodesToProcess = [requireArray.length, mixins, publicMembers.length, staticMembers.length,  privateMembers];
+                    let nodesToProcess = [externalImports.length, mixins, publicMembers.length, staticMembers.length,  privateMembers];
 
                     write("Ext.define('" + modulePath + "', {");
                     writeLine();
@@ -5724,7 +5737,26 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         writeLine();
                     }
                     
-                    if (constructorNode.length) {
+                    if (externalImports.length) {
+                        for (let importNode of externalImports) {
+                            // Find the name of the external module
+                            let externalModuleName = getExternalModuleNameText(importNode);
+                            write("external module: " + externalModuleName);
+                            writeLine();
+                        }                        
+                    }
+                    
+                    
+                    write("// constructor section. Length: " + constructorNodes.length);
+                    writeLine();
+                    if (constructorNodes.length) {
+                        if (constructorNodes.length > 1) {
+                            write("Error: Only support one constructor");
+                            writeLine();
+                        }
+                        else {
+                            emitConstructor();
+                        }
                     }
                     
                     if (staticMembers.length) {
@@ -5734,111 +5766,127 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         
                         // decreaseIndent();
                         // writeLine();
-                        // write("},");                                                    
+                        // write("},");              
                     }
 
                     decreaseIndent();
                     write("});");
 
-                    // let configLiteral = <ObjectLiteralExpression>createNode(SyntaxKind.ObjectLiteralExpression);
-                    // configLiteral.flags = NodeFlags.MultiLine;
-                    
-                    // configLiteral.properties = <NodeArray<ObjectLiteralElement>>[];
-
-                    // // Create elements in the right order: extend/override, require, mixins, statics, public, privates
-                    // if (baseClassNode) {
-                    //     configLiteral.properties.push(getBaseClassElement(baseClassNode));
-                    // }
-
-                    // // requrie
-                    
-                    // // mixins
-                    
-                    // // statics
-                    // let staticMembers = node.members.filter(e=> (e.flags & NodeFlags.Static) === NodeFlags.Static);
-                    
-                    // if (staticMembers.length) {
-                    //     configLiteral.properties.push(createStaticsLiteral(staticMembers));
-                    // }
-                                        
-                    // write("Ext.define('" + modulePath + "', ");
-                    // emitObjectLiteral(configLiteral);
-                    // write(");");
-                }
-                else {
-                    writeLine();
-                    write("'Only support export default class'");
-                }
-
-                function createStaticsLiteral(node: ClassElement[]): ObjectLiteralElement {
-                    var result = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
-                    result.flags = NodeFlags.MultiLine;
-                    let identifier = <Identifier>createNode(SyntaxKind.Identifier);
-                    identifier.text = "statics";
-                    result.name = identifier;
-                    var expression = <ObjectLiteralExpression>createNode(SyntaxKind.ObjectLiteralExpression);
-                    expression.flags = NodeFlags.MultiLine;
-                    expression.properties = <NodeArray<ObjectLiteralElement>>[];
-
-                    result.initializer = expression;                    
-                    forEach(node, e => {
-                        switch (e.kind) {
-                            case SyntaxKind.PropertyDeclaration:
-                                let source = <PropertyDeclaration>e;
-                                let element = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
-                                element.name = source.name;
-                                element.initializer = source.initializer;
-                                expression.properties.push(element)
-                        }
-                    });
-                    
-                    return result;
-                }
-
-                function getBaseClassElement(node: ExpressionWithTypeArguments) {
-                    let extendExpression = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
-                    let identifier = <Identifier>createNode(SyntaxKind.Identifier);
-                    identifier.text = "extend";
-                    extendExpression.name = identifier;
-                    var expression = <StringLiteral>createNode(SyntaxKind.StringLiteral);
-                    expression.text = getTypeNodeFullName(node);
-                    extendExpression.initializer = expression;
-                    return extendExpression;
-                }
-
-                function emitConstructor() {
-
-                }
-
-                function emitPrivateMembers() {
-
-                }
-
-                function emitStaticMembers() {}
-
-                function emitMixinsMembers() {}
-                function emitRequireArray() {}
-                function emitExtend() {
-                    // write("extend: '" + baseClassNode + "'");
-                }
-
-                //@extjsemitter helper
-                function changeClassFullNameToCmdSupport(name : string) : string;
-                function changeClassFullNameToCmdSupport(parts : string[]) : string;
-                function changeClassFullNameToCmdSupport(name : any) : string {
-                    var parts : string[] = name.split ? name.split('.') : name;
-                    //sencha cmd support > change ST to Ext > useful in projects with desktop an mobile app
-                    if (parts[0] === 'ST'){
-                        parts[0] = 'Ext';
+                    function createStaticsLiteral(node: ClassElement[]): ObjectLiteralElement {
+                        var result = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                        result.flags = NodeFlags.MultiLine;
+                        let identifier = <Identifier>createNode(SyntaxKind.Identifier);
+                        identifier.text = "statics";
+                        result.name = identifier;
+                        var expression = <ObjectLiteralExpression>createNode(SyntaxKind.ObjectLiteralExpression);
+                        expression.flags = NodeFlags.MultiLine;
+                        expression.properties = <NodeArray<ObjectLiteralElement>>[];
+    
+                        result.initializer = expression;                    
+                        forEach(node, e => {
+                            switch (e.kind) {
+                                case SyntaxKind.PropertyDeclaration:
+                                    let source = <PropertyDeclaration>e;
+                                    let element = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                                    element.name = source.name;
+                                    element.initializer = source.initializer;
+                                    expression.properties.push(element)
+                            }
+                        });
+                        
+                        return result;
                     }
-                    return parts.join('.');
+    
+                    function getBaseClassElement(node: ExpressionWithTypeArguments) {
+                        let extendExpression = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
+                        let identifier = <Identifier>createNode(SyntaxKind.Identifier);
+                        identifier.text = "extend";
+                        extendExpression.name = identifier;
+                        var expression = <StringLiteral>createNode(SyntaxKind.StringLiteral);
+                        expression.text = getTypeNodeFullName(node);
+                        extendExpression.initializer = expression;
+                        return extendExpression;
+                    }
+    
+                    function emitConstructor() {
+                                let ctor = getFirstConstructorWithBody(node);
+                                if (ctor) {
+                                    emitLeadingComments(ctor);
+                                }
+                                write("constructor: function ");
+                                emit(node.name);
+                                emitSignatureParameters(ctor);
+                                write(" {");
+                                scopeEmitStart(node, "constructor");
+                                increaseIndent();
+                                if (ctor) {
+                                    emitDetachedComments((<Block>ctor.body).statements);
+                                }
+                                emitCaptureThisForNodeIfNecessary(node);
+                                if (ctor) {
+                                    emitDefaultValueAssignments(ctor);
+                                    emitRestParameter(ctor);
+                                    if (baseClassNode) {
+                                        var superCall = findInitialSuperCall(ctor);
+                                        if (superCall) {
+                                            writeLine();
+                                            emit(superCall);
+                                        }
+                                    }
+                                    emitParameterPropertyAssignments(ctor);
+                                }
+                                else {
+                                    if (baseClassNode) {
+                                        writeLine();
+                                        emitStart(baseClassNode);
+                                        write("this.callParent(this, arguments);"); //write("_super.apply(this, arguments);"); extjs
+                                        emitEnd(baseClassNode);
+                                    }
+                                }
+                                //emitMemberAssignments(node, /*nonstatic*/0);  @extjs dont initialize properties in a constructor instance > extjs style is in prototype
+                                if (ctor) {
+                                    var statements: Node[] = (<Block>ctor.body).statements;
+                                    if (superCall) statements = statements.slice(1);
+                                    emitLines(statements);
+                                }
+                                writeLine();
+                                if (ctor) {
+                                    emitLeadingCommentsOfPosition((<Block>ctor.body).statements.end);
+                                }
+                                decreaseIndent();
+                                emitToken(SyntaxKind.CloseBraceToken, ctor ? (<Block>ctor.body).statements.end : node.members.end);
+                                scopeEmitEnd();
+                                emitEnd(<Node>ctor || node);
+                                if (ctor) {
+                                    emitTrailingComments(ctor);
+                                }
+                    }
+    
+                    function emitPrivateMembers() {
+    
+                    }
+    
+                    function emitStaticMembers() {}
+    
+                    function emitMixinsMembers() {}
+                    function emitRequireArray() {}
+                    function emitExtend() {
+                        // write("extend: '" + baseClassNode + "'");
+                    }
+    
+                    //@extjsemitter helper
+                    function changeClassFullNameToCmdSupport(name : string) : string;
+                    function changeClassFullNameToCmdSupport(parts : string[]) : string;
+                    function changeClassFullNameToCmdSupport(name : any) : string {
+                        var parts : string[] = name.split ? name.split('.') : name;
+                        //sencha cmd support > change ST to Ext > useful in projects with desktop an mobile app
+                        if (parts[0] === 'ST'){
+                            parts[0] = 'Ext';
+                        }
+                        return parts.join('.');
+                    }
                 }
             }
-
-            // function getBaseClassFullPath(node: ClassDeclaration): string {
-            //     var baseClassNode = getClassExtendsHeritageClauseElement(node);
-            //     return getTypeNodeFullName(baseClassNode);
-            // }
 
             //@extjsemitter helper ///https://github.com/Microsoft/TypeScript/issues/1255
             function getTypeNodeFullName(node : TypeNode) :  string {

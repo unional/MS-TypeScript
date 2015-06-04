@@ -22,4 +22,8 @@
 
 
 export default class A {
+	constructor(public name?: string)
+	{
+			
+	};
 }
