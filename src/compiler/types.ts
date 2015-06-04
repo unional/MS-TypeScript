@@ -1205,6 +1205,7 @@ module ts {
         getTypeChecker(): TypeChecker;
 
         /* @internal */ getCommonSourceDirectory(): string;
+        /* @internal */ getNamespaceRoot(): string;
 
         // For testing purposes only.  Should not be used by any other consumers (including the
         // language service).
@@ -1825,6 +1826,7 @@ module ts {
         emitDecoratorMetadata?: boolean;
         /* @internal */ stripInternal?: boolean;
         [option: string]: string | number | boolean;
+        namespaceRoot?: string;
     }
 
     export const enum ModuleKind {
@@ -1833,6 +1835,7 @@ module ts {
         AMD = 2,
         UMD = 3,
         System = 4,
+        ExtJS = 6
     }
 
     export const enum NewLineKind {

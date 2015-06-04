@@ -2046,6 +2046,10 @@
         "category": "Error", 
         "code": 6062
     },
+    "Specifies the root directory where the namespace should begin.": {
+        "category": "Message",
+        "code": 6063
+    },
     "Option 'experimentalDecorators' must also be specified when option 'emitDecoratorMetadata' is specified.": {
         "category": "Error",
         "code": 6064

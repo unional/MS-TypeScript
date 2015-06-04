@@ -149,6 +149,7 @@ module ts {
         let commonSourceDirectory: string;
         let diagnosticsProducingTypeChecker: TypeChecker;
         let noDiagnosticsTypeChecker: TypeChecker;
+        let namespaceRoot: string;
 
         let start = new Date().getTime();
 
@@ -179,6 +180,7 @@ module ts {
             getIdentifierCount: () => getDiagnosticsProducingTypeChecker().getIdentifierCount(),
             getSymbolCount: () => getDiagnosticsProducingTypeChecker().getSymbolCount(),
             getTypeCount: () => getDiagnosticsProducingTypeChecker().getTypeCount(),
+            getNamespaceRoot: () => namespaceRoot
         };
         return program;
 
@@ -188,6 +190,7 @@ module ts {
                 getCommonSourceDirectory: program.getCommonSourceDirectory,
                 getCompilerOptions: program.getCompilerOptions,
                 getCurrentDirectory: () => host.getCurrentDirectory(),
+                getNamespaceRoot: program.getNamespaceRoot,
                 getNewLine: () => host.getNewLine(),
                 getSourceFile: program.getSourceFile,
                 getSourceFiles: program.getSourceFiles,
@@ -640,6 +643,10 @@ module ts {
                 if (options.declaration) {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_noEmit_cannot_be_specified_with_option_declaration));
                 }
+            }
+
+            if (options.module === ModuleKind.ExtJS) {
+                namespaceRoot = sys.resolvePath(options.namespaceRoot || ".");
             }
             
             if (options.emitDecoratorMetadata &&
