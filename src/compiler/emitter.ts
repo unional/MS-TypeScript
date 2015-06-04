@@ -5675,16 +5675,20 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 decreaseIndent();
                 writeLine();
 
-                // TODO: basePath resolving should only be processed once.
+                var modulePath = getModulePath(currentSourceFile.fileName);
+                write("}, \"" + modulePath + "\", require, exports, module);");
+            }
+
+            function getModulePath(filename: string) {
                 var namespaceRoot = host.getNamespaceRoot();
-                // write(namespaceRoot); writeLine();
-                var filePath = sys.resolvePath(currentSourceFile.fileName);
-                // write(filePath); writeLine();
+                var filePath = sys.resolvePath(filename);
                 var modulePath = filePath.slice(namespaceRoot.length + 1, filePath.length - 3).replace(/\/|\\/g, ".");
                 if (modulePath.indexOf(".") > 0) {
-                        modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
+                    // If the modulePath is not global (i.e. no namespace), Caps the first letter.
+                    modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
                 }
-                write("}, \"" + modulePath + "\", require, exports, module);");
+
+                return modulePath;                
             }
 
             function emitUMDModule(node: SourceFile, startIndex: number) {
