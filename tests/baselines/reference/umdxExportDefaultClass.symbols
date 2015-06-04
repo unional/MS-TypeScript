@@ -1,0 +1,12 @@
+=== tests/cases/compiler/umdxExportDefaultClass.ts ===
+
+export default class A {
+>A : Symbol(A, Decl(umdxExportDefaultClass.ts, 0, 0))
+
+	public prop: any;
+>prop : Symbol(prop, Decl(umdxExportDefaultClass.ts, 1, 24))
+
+	constructor(public message?: string) {}
+>message : Symbol(message, Decl(umdxExportDefaultClass.ts, 3, 13))
+}
+

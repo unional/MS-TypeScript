@@ -2045,7 +2045,7 @@
         "category": "Error", 
         "code": 6062
     },
-    "Specifies the location where namespace should begin for umdx.": {
+    "Specifies the root directory where the namespace should begin.": {
         "category": "Message",
         "code": 6063
     },

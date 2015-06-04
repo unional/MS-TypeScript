@@ -201,9 +201,9 @@ module ts {
             description: Diagnostics.Enables_experimental_support_for_emitting_type_metadata_for_decorators
         },
         {
-            name: "umdBaseDir",
+            name: "namespaceRoot",
             type: "string",
-            description: Diagnostics.Specifies_the_location_where_namespace_should_begin_for_umdx,
+            description: Diagnostics.Specifies_the_root_directory_where_the_namespace_should_begin,
             paramType: Diagnostics.LOCATION
         }
     ];

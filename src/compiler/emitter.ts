@@ -5662,9 +5662,16 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 write("});");
                 decreaseIndent();
                 writeLine();
-                var baseDir = compilerOptions.umdBaseDir || sys.getCurrentDirectory();
-                var modulePath = currentSourceFile.fileName.slice(baseDir.length + 1, currentSourceFile.fileName.length - 3).replace(/\/|\\/g, ".");
-                modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
+
+                // TODO: basePath resolving should only be processed once.
+                var namespaceRoot = host.getNamespaceRoot();
+                // write(namespaceRoot); writeLine();
+                var filePath = sys.resolvePath(currentSourceFile.fileName);
+                // write(filePath); writeLine();
+                var modulePath = filePath.slice(namespaceRoot.length + 1, filePath.length - 3).replace(/\/|\\/g, ".");
+                if (modulePath.indexOf(".") > 0) {
+                        modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
+                }
                 write("}, \"" + modulePath + "\", require, exports, module);");
             }
 

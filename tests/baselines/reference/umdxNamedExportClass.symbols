@@ -1,0 +1,19 @@
+=== tests/cases/compiler/umdxNamedExportClass.ts ===
+
+export class A {
+>A : Symbol(A, Decl(umdxNamedExportClass.ts, 0, 0))
+
+	public prop: any;
+>prop : Symbol(prop, Decl(umdxNamedExportClass.ts, 1, 16))
+
+	constructor(public message?: string) {}
+>message : Symbol(message, Decl(umdxNamedExportClass.ts, 3, 13))
+}
+
+export class B {
+>B : Symbol(B, Decl(umdxNamedExportClass.ts, 4, 1))
+
+	public prop2: any;
+>prop2 : Symbol(prop2, Decl(umdxNamedExportClass.ts, 6, 16))
+}
+

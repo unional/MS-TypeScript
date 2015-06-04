@@ -32,7 +32,7 @@ module ts {
     export function createCompilerHost(options: CompilerOptions, setParentNodes?: boolean): CompilerHost {
         let currentDirectory: string;
         let existingDirectories: Map<boolean> = {};
-
+        
         function getCanonicalFileName(fileName: string): string {
             // if underlying system can distinguish between two files whose names differs only in cases then file name already in canonical form.
             // otherwise use toLowerCase as a canonical form.
@@ -155,6 +155,7 @@ module ts {
         let commonSourceDirectory: string;
         let diagnosticsProducingTypeChecker: TypeChecker;
         let noDiagnosticsTypeChecker: TypeChecker;
+        let namespaceRoot: string;
 
         let start = new Date().getTime();
 
@@ -184,6 +185,7 @@ module ts {
             getIdentifierCount: () => getDiagnosticsProducingTypeChecker().getIdentifierCount(),
             getSymbolCount: () => getDiagnosticsProducingTypeChecker().getSymbolCount(),
             getTypeCount: () => getDiagnosticsProducingTypeChecker().getTypeCount(),
+            getNamespaceRoot: () => namespaceRoot
         };
         return program;
 
@@ -193,6 +195,7 @@ module ts {
                 getCommonSourceDirectory: program.getCommonSourceDirectory,
                 getCompilerOptions: program.getCompilerOptions,
                 getCurrentDirectory: () => host.getCurrentDirectory(),
+                getNamespaceRoot: program.getNamespaceRoot,
                 getNewLine: () => host.getNewLine(),
                 getSourceFile: program.getSourceFile,
                 getSourceFiles: program.getSourceFiles,
@@ -539,7 +542,7 @@ module ts {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_sourceMap_cannot_be_specified_with_option_isolatedModules));
                 }
 
-                if (options.declaration) {
+                if (options.declaration){
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_declaration_cannot_be_specified_with_option_isolatedModules));
                 }
 
@@ -639,6 +642,10 @@ module ts {
                 if (options.declaration) {
                     diagnostics.add(createCompilerDiagnostic(Diagnostics.Option_noEmit_cannot_be_specified_with_option_declaration));
                 }
+            }
+            
+            if (options.module === ModuleKind.UMDX) {
+                namespaceRoot = sys.resolvePath(options.namespaceRoot || ".");
             }
             
             if (options.emitDecoratorMetadata &&

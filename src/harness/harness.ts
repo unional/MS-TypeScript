@@ -985,6 +985,8 @@ module Harness {
                                     options.module = ts.ModuleKind.CommonJS;
                                 } else if (setting.value.toLowerCase() === 'system') {
                                     options.module = ts.ModuleKind.System;
+                                } else if (setting.value.toLowerCase() === 'umdx') {
+                                    options.module = ts.ModuleKind.UMDX;
                                 } else if (setting.value.toLowerCase() === 'unspecified') {
                                     options.module = ts.ModuleKind.None;
                                 } else {
@@ -1066,6 +1068,9 @@ module Harness {
                             options.declaration = setting.value === 'true';
                             break;
 
+                        case 'namespaceroot':
+                            options.namespaceRoot = setting.value;
+                            break;
                         case 'newline':
                             if (setting.value.toLowerCase() === 'crlf') {
                                 options.newLine = ts.NewLineKind.CarriageReturnLineFeed;
@@ -1527,7 +1532,7 @@ module Harness {
             "errortruncation", "usecasesensitivefilenames", "preserveconstenums",
             "includebuiltfile", "suppressimplicitanyindexerrors", "stripinternal",
             "isolatedmodules", "inlinesourcemap", "maproot", "sourceroot",
-            "inlinesources", "emitdecoratormetadata", "experimentaldecorators"];
+            "inlinesources", "emitdecoratormetadata", "experimentaldecorators", "namespaceroot"];
 
         function extractCompilerSettings(content: string): CompilerSetting[] {
 

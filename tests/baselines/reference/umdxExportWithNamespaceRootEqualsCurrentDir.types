@@ -1,0 +1,12 @@
+=== tests/cases/compiler/umdxExportWithNamespaceRootEqualsCurrentDir.ts ===
+
+export default class A {
+>A : A
+
+	public prop: any;
+>prop : any
+
+	constructor(public message?: string) {}
+>message : string
+}
+

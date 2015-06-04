@@ -1,0 +1,19 @@
+=== tests/cases/compiler/umdxNamedExportClass.ts ===
+
+export class A {
+>A : A
+
+	public prop: any;
+>prop : any
+
+	constructor(public message?: string) {}
+>message : string
+}
+
+export class B {
+>B : B
+
+	public prop2: any;
+>prop2 : any
+}
+

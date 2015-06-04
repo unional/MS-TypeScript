@@ -35,7 +35,8 @@ module ts {
         getCommonSourceDirectory(): string;
         getCanonicalFileName(fileName: string): string;
         getNewLine(): string;
-
+        getNamespaceRoot(): string;
+        
         writeFile: WriteFileCallback;
     }
 

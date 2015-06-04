@@ -1187,7 +1187,7 @@ module ts {
          * If targetSourceFile is specified, then only the JavaScript and declaration for that
          * specific file will be generated.
          *
-         * If writeFile is not specified then the writeFile callback from the compiler host will be
+         * If writeFile is not specified then the writeFile callback from thiler host will be
          * used for writing the JavaScript and declaration files.  Otherwise, the writeFile parameter
          * will be invoked when writing the JavaScript and declaration files.
          */
@@ -1204,6 +1204,7 @@ module ts {
         getTypeChecker(): TypeChecker;
 
         /* @internal */ getCommonSourceDirectory(): string;
+        /* @internal */ getNamespaceRoot(): string;
 
         // For testing purposes only.  Should not be used by any other consumers (including the
         // language service).
@@ -1824,7 +1825,7 @@ module ts {
         emitDecoratorMetadata?: boolean;
         /* @internal */ stripInternal?: boolean;
         [option: string]: string | number | boolean;
-        umdBaseDir?: string;
+        namespaceRoot?: string;
     }
 
     export const enum ModuleKind {

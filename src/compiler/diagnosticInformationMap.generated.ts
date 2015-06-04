@@ -514,7 +514,7 @@ module ts {
         Specifies_the_end_of_line_sequence_to_be_used_when_emitting_files_Colon_CRLF_dos_or_LF_unix: { code: 6060, category: DiagnosticCategory.Message, key: "Specifies the end of line sequence to be used when emitting files: 'CRLF' (dos) or 'LF' (unix)." },
         NEWLINE: { code: 6061, category: DiagnosticCategory.Message, key: "NEWLINE" },
         Argument_for_newLine_option_must_be_CRLF_or_LF: { code: 6062, category: DiagnosticCategory.Error, key: "Argument for '--newLine' option must be 'CRLF' or 'LF'." },
-        Specifies_the_location_where_namespace_should_begin_for_umdx: { code: 6063, category: DiagnosticCategory.Message, key: "Specifies the location where namespace should begin for umdx." },
+        Specifies_the_root_directory_where_the_namespace_should_begin: { code: 6063, category: DiagnosticCategory.Message, key: "Specifies the root directory where the namespace should begin." },
         Option_experimentalDecorators_must_also_be_specified_when_option_emitDecoratorMetadata_is_specified: { code: 6064, category: DiagnosticCategory.Error, key: "Option 'experimentalDecorators' must also be specified when option 'emitDecoratorMetadata' is specified." },
         Enables_experimental_support_for_ES7_decorators: { code: 6065, category: DiagnosticCategory.Message, key: "Enables experimental support for ES7 decorators." },
         Enables_experimental_support_for_emitting_type_metadata_for_decorators: { code: 6066, category: DiagnosticCategory.Message, key: "Enables experimental support for emitting type metadata for decorators." },
