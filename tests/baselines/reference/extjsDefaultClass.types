@@ -24,9 +24,44 @@
 export default class A {
 >A : A
 
-	constructor(public name?: string)
+	constructor(public name?: string){}
 >name : string
-	{
-			
-	};
+
+	static staticMethod() { }
+>staticMethod : () => void
+
+	static staticProp: string = "abc"
+>staticProp : string
+>"abc" : string
+
+	static staticProp2: number = 3
+>staticProp2 : number
+>3 : number
+
+	public mixins = {
+>mixins : { "nameA": string; "nameB": string; }
+>{		"nameA": "a.b.c",		"nameB": "b.c.d"	} : { "nameA": string; "nameB": string; }
+
+		"nameA": "a.b.c",
+>"a.b.c" : string
+
+		"nameB": "b.c.d"
+>"b.c.d" : string
+	}
+	private privateProp: string
+>privateProp : string
+
+	private privateProp2 = "privateProp2"
+>privateProp2 : string
+>"privateProp2" : string
+
+	private privateMethod() {}
+>privateMethod : () => void
+
+	publicMethod() {}
+>publicMethod : () => void
+
+	publicProp = 4
+>publicProp : number
+>4 : number
 }

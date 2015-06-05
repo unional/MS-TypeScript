@@ -5715,14 +5715,24 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     let modulePath = getModulePath(currentSourceFile.fileName);
 
                     let baseClassNode = getClassExtendsHeritageClauseElement(node);
-                    let mixins: any;
-                    let constructorNodes = node.members.filter(e => (e.kind & SyntaxKind.Constructor) === SyntaxKind.Constructor);
-                    let staticMembers = node.members.filter(e=> (e.flags & NodeFlags.Static) === NodeFlags.Static);
-                    let publicMembers = node.members.filter(e => (e.flags & NodeFlags.Public) === NodeFlags.Public);
-                    let privateMembers = node.members.filter(e => (e.flags & NodeFlags.Private) === NodeFlags.Private);
+                    let mixins: PropertyDeclaration;
+                    
+                    let constructorNodes = new Array<ConstructorDeclaration>(),
+                    staticMembers = new Array<Declaration>(),
+                    publicMembers = new Array<Declaration>(),
+                    privateMembers = new Array<Declaration>();
+
+                    analyzeNode();                    
                     
                     // use to keep track do we need to `write(",")` in each section.
-                    let nodesToProcess = [externalImports.length, mixins, publicMembers.length, staticMembers.length,  privateMembers];
+                    let nodesToProcess = [
+                        externalImports.length > 0,
+                        mixins !== undefined,
+                        constructorNodes.length > 0,
+                        publicMembers.length > 0,
+                        staticMembers.length > 0,
+                        privateMembers.length > 0
+                    ];
 
                     write("Ext.define('" + modulePath + "', {");
                     writeLine();
@@ -5731,47 +5741,107 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         let baseClassPath = getTypeNodeFullName(baseClassNode)
                         baseClassPath = baseClassPath? changeClassFullNameToCmdSupport(baseClassPath) : 'UnknownType'
                         write('extend: "' + baseClassPath + '"');
-                        if (nodesToProcess.some(e => <boolean>e)) {
+                        if (nodesToProcess.some(e => e)) {
                             write(',');
                         }
                         writeLine();
                     }
                     
+                    //region require
+                    nodesToProcess.pop();
                     if (externalImports.length) {
+                        emitRequire(externalImports);
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();
+                    }
+                    //endregion
+                    
+                    //region mixin
+                    nodesToProcess.pop();
+                    if (mixins) {
+                        emitPropertyAssignment(mixins);
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();
+                    }
+                    //endregion
+                    
+                    //region constructor
+                    nodesToProcess.pop();
+                    if (constructorNodes.length) {
+                        emitConstructor();
+                    }
+                    //endregion
+                    
+                    //region public members
+                    nodesToProcess.pop();
+                    if (publicMembers.length) {
+                        emitObjectMembers(publicMembers);
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();                        
+                    }
+                    //endregion
+                    
+                    //region static members
+                    nodesToProcess.pop();
+                    if (staticMembers.length) {
+                        emitObject("statics", staticMembers);
+                    }
+                    //endregion
+                    
+                    //region private members
+                    nodesToProcess.pop();
+                    if (privateMembers.length) {
+                        emitObject("privates", privateMembers);
+                    }
+                    
+                    decreaseIndent();
+                    write("});");
+
+                    function analyzeNode() {
+                        node.members.forEach( m => {
+                            switch (m.kind) {
+                                case SyntaxKind.Constructor:
+                                    constructorNodes.push(<ConstructorDeclaration>m);
+                                    break;
+                                case SyntaxKind.PropertyDeclaration:
+                                case SyntaxKind.MethodDeclaration:
+                                    switch (m.flags) {
+                                        case NodeFlags.Static:
+                                            staticMembers.push(m);
+                                            break;
+                                        case NodeFlags.Private:
+                                            privateMembers.push(m);
+                                            break;
+                                        case NodeFlags.Public:
+                                        default:
+                                            if (m.symbol.name === "mixins") {
+                                                mixins = <PropertyDeclaration>m;
+                                            }
+                                            else {
+                                                publicMembers.push(m);
+                                            }
+                                            break;
+                                    }
+                                    break;
+                            }
+                        });
+                    }
+
+                    function emitRequire(nodes: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[]) {
                         for (let importNode of externalImports) {
                             // Find the name of the external module
                             let externalModuleName = getExternalModuleNameText(importNode);
                             write("external module: " + externalModuleName);
                             writeLine();
-                        }                        
-                    }
-                    
-                    
-                    write("// constructor section. Length: " + constructorNodes.length);
-                    writeLine();
-                    if (constructorNodes.length) {
-                        if (constructorNodes.length > 1) {
-                            write("Error: Only support one constructor");
-                            writeLine();
-                        }
-                        else {
-                            emitConstructor();
                         }
                     }
                     
-                    if (staticMembers.length) {
-                        // write("statics: {");
-                        // writeLine();
-                        // increaseIndent();
-                        
-                        // decreaseIndent();
-                        // writeLine();
-                        // write("},");              
-                    }
-
-                    decreaseIndent();
-                    write("});");
-
                     function createStaticsLiteral(node: ClassElement[]): ObjectLiteralElement {
                         var result = <PropertyAssignment>createNode(SyntaxKind.PropertyAssignment);
                         result.flags = NodeFlags.MultiLine;
@@ -5809,65 +5879,106 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     }
     
                     function emitConstructor() {
-                                let ctor = getFirstConstructorWithBody(node);
-                                if (ctor) {
-                                    emitLeadingComments(ctor);
-                                }
-                                write("constructor: function ");
-                                emit(node.name);
-                                emitSignatureParameters(ctor);
-                                write(" {");
-                                scopeEmitStart(node, "constructor");
-                                increaseIndent();
-                                if (ctor) {
-                                    emitDetachedComments((<Block>ctor.body).statements);
-                                }
-                                emitCaptureThisForNodeIfNecessary(node);
-                                if (ctor) {
-                                    emitDefaultValueAssignments(ctor);
-                                    emitRestParameter(ctor);
-                                    if (baseClassNode) {
-                                        var superCall = findInitialSuperCall(ctor);
-                                        if (superCall) {
-                                            writeLine();
-                                            emit(superCall);
-                                        }
-                                    }
-                                    emitParameterPropertyAssignments(ctor);
-                                }
-                                else {
-                                    if (baseClassNode) {
+                        if (constructorNodes.length > 1) {
+                            write("Error: Only support one constructor");
+                            writeLine();
+                        }
+                        else {
+                            let ctor = getFirstConstructorWithBody(node);
+                            if (ctor) {
+                                emitLeadingComments(ctor);
+                            }
+                            write("constructor: function ");
+                            emit(node.name);
+                            emitSignatureParameters(ctor);
+                            write(" {");
+                            scopeEmitStart(node, "constructor");
+                            increaseIndent();
+                            if (ctor) {
+                                emitDetachedComments((<Block>ctor.body).statements);
+                            }
+                            emitCaptureThisForNodeIfNecessary(node);
+                            if (ctor) {
+                                emitDefaultValueAssignments(ctor);
+                                emitRestParameter(ctor);
+                                if (baseClassNode) {
+                                    var superCall = findInitialSuperCall(ctor);
+                                    if (superCall) {
                                         writeLine();
-                                        emitStart(baseClassNode);
-                                        write("this.callParent(this, arguments);"); //write("_super.apply(this, arguments);"); extjs
-                                        emitEnd(baseClassNode);
+                                        emit(superCall);
                                     }
                                 }
-                                //emitMemberAssignments(node, /*nonstatic*/0);  @extjs dont initialize properties in a constructor instance > extjs style is in prototype
-                                if (ctor) {
-                                    var statements: Node[] = (<Block>ctor.body).statements;
-                                    if (superCall) statements = statements.slice(1);
-                                    emitLines(statements);
+                                emitParameterPropertyAssignments(ctor);
+                            }
+                            else {
+                                if (baseClassNode) {
+                                    writeLine();
+                                    emitStart(baseClassNode);
+                                    write("this.callParent(this, arguments);"); //write("_super.apply(this, arguments);"); extjs
+                                    emitEnd(baseClassNode);
                                 }
-                                writeLine();
-                                if (ctor) {
-                                    emitLeadingCommentsOfPosition((<Block>ctor.body).statements.end);
-                                }
-                                decreaseIndent();
-                                emitToken(SyntaxKind.CloseBraceToken, ctor ? (<Block>ctor.body).statements.end : node.members.end);
-                                scopeEmitEnd();
-                                emitEnd(<Node>ctor || node);
-                                if (ctor) {
-                                    emitTrailingComments(ctor);
-                                }
+                            }
+                            //emitMemberAssignments(node, /*nonstatic*/0);  @extjs dont initialize properties in a constructor instance > extjs style is in prototype
+                            if (ctor) {
+                                var statements: Node[] = (<Block>ctor.body).statements;
+                                if (superCall) statements = statements.slice(1);
+                                emitLines(statements);
+                            }
+                            writeLine();
+                            if (ctor) {
+                                emitLeadingCommentsOfPosition((<Block>ctor.body).statements.end);
+                            }
+                            decreaseIndent();
+                            emitToken(SyntaxKind.CloseBraceToken, ctor ? (<Block>ctor.body).statements.end : node.members.end);
+                            scopeEmitEnd();
+                            emitEnd(<Node>ctor || node);
+                            if (ctor) {
+                                emitTrailingComments(ctor);
+                            }
+                        }
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();
                     }
-    
-                    function emitPrivateMembers() {
-    
+            
+                    function emitObjectMembers(members: Declaration[]) {
+                        members.forEach(m => {
+                            writeLine();
+                            if (m.kind == SyntaxKind.PropertyDeclaration) {
+                                let pd = <PropertyDeclaration>m;
+                                
+                                // If there is no initializer, it is a pure declaration,
+                                // e.g. `prop: string`. Don't need to emit that.
+                                if (pd.initializer) {
+                                    emitPropertyAssignment(pd);                                    
+                                    if (m != members[members.length-1]) {
+                                        write(",");
+                                    }
+                                }
+                            }
+                            else if (m.kind === SyntaxKind.MethodDeclaration) {
+                                emitMethod(<MethodDeclaration>m)
+                                if (m != members[members.length-1]) {
+                                    write(",");
+                                }
+                            }
+                        });                        
                     }
-    
-                    function emitStaticMembers() {}
-    
+            
+                    function emitObject(name: string, members: Declaration[]) {
+                        write(name + ": {");
+                        increaseIndent();
+                        emitObjectMembers(members);
+                        writeLine();
+                        decreaseIndent();
+                        write("}");
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();                        
+                    }
+
                     function emitMixinsMembers() {}
                     function emitRequireArray() {}
                     function emitExtend() {
