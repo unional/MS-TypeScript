@@ -955,6 +955,7 @@ module ts {
         statements: NodeArray<ModuleElement>
     }
 
+    // import Math = require('math') => name = Math, moduleReference = require('math')
     export interface ImportEqualsDeclaration extends Declaration, ModuleElement {
         name: Identifier;
 
