@@ -1,0 +1,28 @@
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BallSize.ts ===
+
+/**
+ * Size of the ball, in cm.
+ */
+enum BallSize {
+>BallSize : BallSize
+
+	ThrityEight = 0.38,
+>ThrityEight : BallSize
+>0.38 : number
+
+	Fourty = 0.4,
+>Fourty : BallSize
+>0.4 : number
+
+	FourtyPlus = 0.4025,
+>FourtyPlus : BallSize
+>0.4025 : number
+
+	FourtyFour = 0.44
+>FourtyFour : BallSize
+>0.44 : number
+}
+
+export default BallSize;
+>BallSize : BallSize
+

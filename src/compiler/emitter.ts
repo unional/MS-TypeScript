@@ -3848,10 +3848,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
             }
 
             function emitClassLikeDeclaration(node: ClassLikeDeclaration) {
-                if (compilerOptions.module === ModuleKind.ExtJS5) {
-                    emitExtClassDeclaration(node);
-                }
-                else if (languageVersion < ScriptTarget.ES6) {
+                if (languageVersion < ScriptTarget.ES6) {
                     emitClassLikeDeclarationBelowES6(node);
                 }
                 else {
@@ -4956,20 +4953,22 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                             }
                             break;
                         case SyntaxKind.ExportDeclaration:
-                            if ((<ExportDeclaration>node).moduleSpecifier) {
-                                if (!(<ExportDeclaration>node).exportClause) {
+                            let edNode = <ExportDeclaration>node;
+
+                            if (edNode.moduleSpecifier) {
+                                if (!edNode.exportClause) {
                                     // export * from "mod"
-                                    externalImports.push(<ExportDeclaration>node);
+                                    externalImports.push(edNode);
                                     hasExportStars = true;
                                 }
                                 else if (resolver.isValueAliasDeclaration(node)) {
                                     // export { x, y } from "mod" where at least one export is a value symbol
-                                    externalImports.push(<ExportDeclaration>node);
+                                    externalImports.push(edNode);
                                 }
                             }
                             else {
                                 // export { x, y }
-                                for (let specifier of (<ExportDeclaration>node).exportClause.elements) {
+                                for (let specifier of edNode.exportClause.elements) {
                                     let name = (specifier.propertyName || specifier.name).text;
                                     (exportSpecifiers[name] || (exportSpecifiers[name] = [])).push(specifier);
                                 }
@@ -5678,10 +5677,105 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 write("});");
             }
 
-            function emitExtJS5Module(node: SourceFile, startIndex: number) {
+            function emitExtJS5Module(node: SourceFile) {                
+                var preDefinitionStatements = new Array<ModuleElement>();
+                var postDefinitionStatements = new Array<ModuleElement>();
+                var defaultExportStatement: ModuleElement;
+                var modulePath = getFileNamespace(currentSourceFile.fileName);
                 collectExternalModuleInfo(node);
 
-                // TODO: may need to go through the statements manually instead of using emitLinesStartingAt()
+                sortStatements();
+
+                if (defaultExportStatement) {
+                    emitDefaultExport();
+                }
+                else {
+                    emitNamedExport();
+                }
+                
+                function emitNamedExport() {
+                    write("TODO: emitNamedExport");
+                    writeLine();
+                }
+                
+                function emitDefaultExport() {
+                    switch (defaultExportStatement.kind) {
+                        case SyntaxKind.ClassDeclaration:
+                            emitExtDefineForClass(<ClassDeclaration>defaultExportStatement);
+                            break;
+                        case SyntaxKind.FunctionDeclaration:
+                            write("TODO: emitDefaultExport for function declaration");
+                            writeLine();
+                            break;
+                        case SyntaxKind.ExportDeclaration:
+                            write("TODO: emitDefaultExport for export declaration");
+                            writeLine();
+                            break;
+                        case SyntaxKind.ExportAssignment:
+                            write("TODO: emitDefaultExport for export assignment");
+                            writeLine();
+                            break;                        
+                    }
+                }
+                
+                function sortStatements() {
+                    for (let statement of node.statements) {
+                        let target = defaultExportStatement? postDefinitionStatements : preDefinitionStatements;
+                        switch (statement.kind) {
+                            case SyntaxKind.ImportDeclaration:
+                                // Skip import declaration
+                                break;
+                            case SyntaxKind.ClassDeclaration:
+                            case SyntaxKind.FunctionDeclaration:
+                                if (statement.flags & NodeFlags.Export && statement.flags & NodeFlags.Default) {
+                                    defaultExportStatement = statement;
+                                }
+                                else {
+                                    target.push(statement);
+                                }
+                                break;
+                            case SyntaxKind.ExportDeclaration:
+                            case SyntaxKind.ExportAssignment:
+                                let ea = <ExportAssignment>statement;
+                               if (!ea.isExportEquals && resolver.isValueAliasDeclaration(ea)) {
+                                    defaultExportStatement = statement;
+                                }
+                                else {
+                                    target.push(statement);
+                                }
+                                break;
+                            default:
+                                target.push(statement);
+                                break;
+                        }
+                    }
+                }
+
+
+                // There are two scenarios we need to support:
+                // # Export Default
+                // ```
+                // import x from "y"
+                // var preDefinition code;
+                // export class Static-like-classes {}
+                // var inbetween code
+                // export default class DefaultClass {}
+                // var inbetween code
+                // export class More-Static-like-classes {}
+                // var postDefinition code
+                // ```
+                // # Pure Named Export
+                // ```
+                // import x from "y"                
+                // var preDefinition code;
+                // export class ModuleClass {}
+                // var inbetween code
+                // export class MoreModuleClass {}
+                // var inbetweenObject
+                // export inbetweenObject
+                // var postDefinition code
+                // ```
+                // In general, we need to go through the statements manually instead of using emitLinesStartingAt()
                 // because Schema CMD would like to put code before `Ext.define` within the factory function,
                 // code after Ext.define under the post-callback.
                 // i.e. in TypeScript: 
@@ -5699,21 +5793,112 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 // }, function() {
                 //    this.methodAlias = this.originalMethod;
                 // });
-                // 
-                emitLinesStartingAt(node.statements, startIndex);
-            }
+                
+                // function emitEnumDeclaration(node: EnumDeclaration) {
+                   
+                //     write("Ext.define('");
+                //     if(node.localSymbol && node.localSymbol.exportSymbol){
+                //         write(resolver.getFullyQualifiedName(node.localSymbol.exportSymbol));
+                //     }else{
+                //         emit(node.name);    
+                //     }
+                //     write("', {");
+                //     writeLine();
+                //     increaseIndent();
+                //     write("singleton : true,");
+                    
+                //     forEach(node.members, member => {
+                //         writeLine();
+                //         emitStart(member);
+                //         emit(member.name);
+                //         write(' : ');
+                //         if (member.initializer && !isConstEnum) {
+                //             emit(member.initializer);
+                //         }else {
+                //             write(resolver.getEnumMemberValue(member).toString());
+                //         }
+                //         emitEnd(member);
+                //         if(node.members.indexOf(member) < node.members.length - 1){
+                //             write(',');
+                //         }
+                //     });
+                //     decreaseIndent();
+                //     writeLine();
+                //     write("});");
+                //     //TODO: const enums with Extjs? maybe its sencha cmd will raise a error if class isnot found...
+                //     return;
+                //     // const enums are completely erased during compilation.
+                //     var isConstEnum = isConst(node);
+                //     if (isConstEnum && !compilerOptions.preserveConstEnums) {
+                //         return;
+                //     }
+                //     emitLeadingComments(node);
+                //     if (!(node.flags & NodeFlags.Export)) {
+                //         emitStart(node);
+                //         write("var ");
+                //         emit(node.name);
+                //         emitEnd(node);
+                //         write(";");
+                //     }
+                //     writeLine();
+                //     emitStart(node);
+                //     write("(function (");
+                //     emitStart(node.name);
+                //     write(resolver.getLocalNameOfContainer(node));
+                //     emitEnd(node.name);
+                //     write(") {");
+                //     increaseIndent();
+                //     scopeEmitStart(node);
+                //     emitEnumMemberDeclarations(isConstEnum);
+                //     decreaseIndent();
+                //     writeLine();
+                //     emitToken(SyntaxKind.CloseBraceToken, node.members.end);
+                //     scopeEmitEnd();
+                //     write(")(");
+                //     emitModuleMemberName(node);
+                //     write(" || (");
+                //     emitModuleMemberName(node);
+                //     write(" = {}));");
+                //     emitEnd(node);
+                //     if (node.flags & NodeFlags.Export) {
+                //         writeLine();
+                //         emitStart(node);
+                //         write("var ");
+                //         emit(node.name);
+                //         write(" = ");
+                //         emitModuleMemberName(node);
+                //         emitEnd(node);
+                //         write(";");
+                //     }
+                //     emitTrailingComments(node);
+    
+                //     function emitEnumMemberDeclarations(isConstEnum: boolean) {
+                //         forEach(node.members, member => {
+                //             writeLine();
+                //             emitLeadingComments(member);
+                //             emitStart(member);
+                //             write(resolver.getLocalNameOfContainer(node));
+                //             write("[");
+                //             write(resolver.getLocalNameOfContainer(node));
+                //             write("[");
+                //             emitExpressionForPropertyName(member.name);
+                //             write("] = ");
+                //             if (member.initializer && !isConstEnum) {
+                //                 emit(member.initializer);
+                //             }
+                //             else {
+                //                 write(resolver.getEnumMemberValue(member).toString());
+                //             }
+                //             write("] = ");
+                //             emitExpressionForPropertyName(member.name);
+                //             emitEnd(member);
+                //             write(";");
+                //             emitTrailingComments(member);
+                //         });
+                //     }
+                // }
 
-            function emitExtClassDeclaration(node: ClassLikeDeclaration) {
-                if (!(node.flags & NodeFlags.Export)) {
-                    emitClassLikeDeclarationBelowES6(node);
-                }
-                else if (!(node.flags & NodeFlags.Default)) {
-                    writeLine();
-                    write("'Only support export default class'");
-                }
-                else {
-                    let modulePath = getModulePath(currentSourceFile.fileName);
-
+                function emitExtDefineForClass(node: ClassLikeDeclaration) {
                     let baseClassNode = getClassExtendsHeritageClauseElement(node);
                     let mixins: PropertyDeclaration;
                     
@@ -5721,7 +5906,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     staticMembers = new Array<Declaration>(),
                     publicMembers = new Array<Declaration>(),
                     privateMembers = new Array<Declaration>();
-
+                    // let nonBaseImports = new Array<ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration>();
+                    let importMap: Map<string> = {};
                     analyzeNode();                    
                     
                     // use to keep track do we need to `write(",")` in each section.
@@ -5734,11 +5920,29 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         privateMembers.length > 0
                     ];
 
-                    write("Ext.define('" + modulePath + "', {");
-                    writeLine();
-                    increaseIndent();
+                    if (externalImports.length) {
+                        generateImportMap();    
+                    }
+                    
+                    if (preDefinitionStatements.length) {
+                        write(`Ext.define('${modulePath}', function() {`);
+                        writeLine();
+                        increaseIndent();
+                        
+                        for (let preStatement of preDefinitionStatements) {
+                            emitStatement(preStatement);
+                        }
+                        write(`return {`);
+                        writeLine();
+                        increaseIndent();
+                    }
+                    else {
+                        write(`Ext.define('${modulePath}', {`);
+                        writeLine();
+                        increaseIndent();
+                    }
                     if (baseClassNode) {
-                        let baseClassPath = getTypeNodeFullName(baseClassNode)
+                        let baseClassPath = getModulePath(baseClassNode);
                         baseClassPath = baseClassPath? changeClassFullNameToCmdSupport(baseClassPath) : 'UnknownType'
                         write('extend: "' + baseClassPath + '"');
                         if (nodesToProcess.some(e => e)) {
@@ -5748,18 +5952,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     }
                     
                     //region require
-                    nodesToProcess.pop();
+                    nodesToProcess.shift();
                     if (externalImports.length) {
-                        emitRequire(externalImports);
-                        if (nodesToProcess.some(e => e)) {
-                            write(',');
-                        }
-                        writeLine();
+                        emitRequire();
                     }
                     //endregion
                     
                     //region mixin
-                    nodesToProcess.pop();
+                    nodesToProcess.shift();
                     if (mixins) {
                         emitPropertyAssignment(mixins);
                         if (nodesToProcess.some(e => e)) {
@@ -5770,22 +5970,21 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     //endregion
                     
                     //region constructor
-                    nodesToProcess.pop();
+                    nodesToProcess.shift();
                     if (constructorNodes.length) {
                         emitConstructor();
                     }
                     //endregion
-                    
+                    // write("done constructor");
+                    // writeLine();
                     //region public members
-                    nodesToProcess.pop();
+                    nodesToProcess.shift();
                     if (publicMembers.length) {
                         emitObjectMembers(publicMembers);
-                        if (nodesToProcess.some(e => e)) {
-                            write(',');
-                        }
-                        writeLine();                        
                     }
                     //endregion
+                    // write("done public");
+                    // writeLine();
                     
                     //region static members
                     nodesToProcess.pop();
@@ -5793,16 +5992,117 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         emitObject("statics", staticMembers);
                     }
                     //endregion
+                    // write("done statics");
+                    // writeLine();
                     
                     //region private members
-                    nodesToProcess.pop();
+                    nodesToProcess.shift();
                     if (privateMembers.length) {
                         emitObject("privates", privateMembers);
                     }
+                    // write("done privates");
+                    // writeLine();
                     
                     decreaseIndent();
-                    write("});");
+                    if (preDefinitionStatements.length) {
+                        write("};");
+                        writeLine();
+                        decreaseIndent();
+                        write(")");
+                    }
+                    else {
+                        write("})");
+                    }
+                    
+                    if (postDefinitionStatements.length) {
+                        write(", function() {");
+                        writeLine();
+                        increaseIndent();
+                        for (let postStatment of postDefinitionStatements) {
+                            emitStatement(postStatment);
+                        }
+                        decreaseIndent();
+                        write("}");
+                    }
+                    
+                    write(");");
 
+                    function generateImportMap() {
+                        for (let node of externalImports) {
+                            switch (node.kind) {
+                                case SyntaxKind.ImportDeclaration:
+                                    let id = <ImportDeclaration>node;
+                                    let modulePath = getModulePath(node);
+                                    importMap[id.importClause.name.text] = modulePath;
+                                    break;
+                            }
+                        }
+                    }
+                    
+            // function emitExternalImportDeclaration(node: ImportDeclaration | ImportEqualsDeclaration) {
+            //     if (contains(externalImports, node)) {
+            //         let isExportedImport = node.kind === SyntaxKind.ImportEqualsDeclaration && (node.flags & NodeFlags.Export) !== 0;
+            //         let namespaceDeclaration = getNamespaceDeclarationNode(node);
+
+            //         if (compilerOptions.module !== ModuleKind.AMD) {
+            //             emitLeadingComments(node);
+            //             emitStart(node);
+            //             if (namespaceDeclaration && !isDefaultImport(node)) {
+            //                 // import x = require("foo")
+            //                 // import * as x from "foo"
+            //                 if (!isExportedImport) write("var ");
+            //                 emitModuleMemberName(namespaceDeclaration);
+            //                 write(" = ");
+            //             }
+            //             else {
+            //                 // import "foo"
+            //                 // import x from "foo"
+            //                 // import { x, y } from "foo"
+            //                 // import d, * as x from "foo"
+            //                 // import d, { x, y } from "foo"
+            //                 let isNakedImport = SyntaxKind.ImportDeclaration && !(<ImportDeclaration>node).importClause;
+            //                 if (!isNakedImport) {
+            //                     write("var ");
+            //                     write(getGeneratedNameForNode(<ImportDeclaration>node));
+            //                     write(" = ");
+            //                 }
+            //             }
+            //             emitRequire(getExternalModuleName(node));
+            //             if (namespaceDeclaration && isDefaultImport(node)) {
+            //                 // import d, * as x from "foo"
+            //                 write(", ");
+            //                 emitModuleMemberName(namespaceDeclaration);
+            //                 write(" = ");
+            //                 write(getGeneratedNameForNode(<ImportDeclaration>node));
+            //             }
+            //             write(";");
+            //             emitEnd(node);
+            //             emitExportImportAssignments(node);
+            //             emitTrailingComments(node);
+            //         }
+            //         else {
+            //             if (isExportedImport) {
+            //                 emitModuleMemberName(namespaceDeclaration);
+            //                 write(" = ");
+            //                 emit(namespaceDeclaration.name);
+            //                 write(";");
+            //             }
+            //             else if (namespaceDeclaration && isDefaultImport(node)) {
+            //                 // import d, * as x from "foo"
+            //                 write("var ");
+            //                 emitModuleMemberName(namespaceDeclaration);
+            //                 write(" = ");
+            //                 write(getGeneratedNameForNode(<ImportDeclaration>node));
+            //                 write(";");
+            //             }
+            //             emitExportImportAssignments(node);
+            //         }
+            //     }
+            // }
+                    function emitStatement(statement: ModuleElement) {
+                        emit(statement);
+                    }
+                    
                     function analyzeNode() {
                         node.members.forEach( m => {
                             switch (m.kind) {
@@ -5824,7 +6124,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                                                 mixins = <PropertyDeclaration>m;
                                             }
                                             else {
-                                                publicMembers.push(m);
+                                                if (m.kind !== SyntaxKind.PropertyDeclaration ||
+                                                    (<PropertyDeclaration>m).initializer) {
+                                                        publicMembers.push(m);
+                                                }
                                             }
                                             break;
                                     }
@@ -5833,13 +6136,44 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         });
                     }
 
-                    function emitRequire(nodes: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[]) {
-                        for (let importNode of externalImports) {
-                            // Find the name of the external module
-                            let externalModuleName = getExternalModuleNameText(importNode);
-                            write("external module: " + externalModuleName);
+                    function emitRequire() {
+                        let baseClassPath = getModulePath(baseClassNode);
+                        let requires = new Array<string>();
+                        externalImports.forEach(e => {
+                            let modulePath = getModulePath(e);
+                            if (modulePath !== baseClassPath) {
+                                requires.push(modulePath);
+                            }
+                        });
+                                             
+                        if (requires.length) {
+                            if (requires.length > 1) {
+                                write("require: [");
+                                writeLine();
+                                increaseIndent();
+                            }                        
+                            for (let entry of requires) {
+                                if (externalImports.length === 1) {
+                                    write(`require: '${entry}'`);
+                                }
+                                else {
+                                    write(`'${entry}'`);
+                                    if (entry != requires[requires.length - 1]) {
+                                        write(",");
+                                    }
+                                    writeLine();
+                                }
+                            }
+                            if (externalImports.length > 1) {
+                                decreaseIndent();
+                                write("]");
+                            }                        
+                            
+                            if (nodesToProcess.some(e => e)) {
+                                write(',');
+                            }                            
                             writeLine();
-                        }
+                        }   
                     }
                     
                     function createStaticsLiteral(node: ClassElement[]): ObjectLiteralElement {
@@ -5873,7 +6207,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         identifier.text = "extend";
                         extendExpression.name = identifier;
                         var expression = <StringLiteral>createNode(SyntaxKind.StringLiteral);
-                        expression.text = getTypeNodeFullName(node);
+                        expression.text = getModulePath(node);
                         extendExpression.initializer = expression;
                         return extendExpression;
                     }
@@ -5905,7 +6239,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                                     var superCall = findInitialSuperCall(ctor);
                                     if (superCall) {
                                         writeLine();
-                                        emit(superCall);
+                                        let callExpression = <CallExpression>superCall.expression;
+                                        write("this.callParent(");
+                                        emitCommaList(callExpression.arguments);
+                                        write(");");
                                     }
                                 }
                                 emitParameterPropertyAssignments(ctor);
@@ -5914,7 +6251,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                                 if (baseClassNode) {
                                     writeLine();
                                     emitStart(baseClassNode);
-                                    write("this.callParent(this, arguments);"); //write("_super.apply(this, arguments);"); extjs
+                                    write("this.callParent(arguments);");
                                     emitEnd(baseClassNode);
                                 }
                             }
@@ -5945,25 +6282,31 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     function emitObjectMembers(members: Declaration[]) {
                         members.forEach(m => {
                             writeLine();
-                            if (m.kind == SyntaxKind.PropertyDeclaration) {
-                                let pd = <PropertyDeclaration>m;
-                                
-                                // If there is no initializer, it is a pure declaration,
-                                // e.g. `prop: string`. Don't need to emit that.
-                                if (pd.initializer) {
-                                    emitPropertyAssignment(pd);                                    
+                            switch (m.kind) {
+                                case SyntaxKind.PropertyDeclaration:
+                                    let pd = <PropertyDeclaration>m;
+
+                                    // If there is no initializer, it is a pure declaration,
+                                    // e.g. `prop: string`. Don't need to emit that.
+                                    if (pd.initializer) {
+                                        emitPropertyAssignment(pd);                                    
+                                        if (m != members[members.length-1]) {
+                                            write(",");
+                                        }
+                                    }
+                                    break;
+                                case SyntaxKind.MethodDeclaration:
+                                    emitMethod(<MethodDeclaration>m)
                                     if (m != members[members.length-1]) {
                                         write(",");
                                     }
-                                }
-                            }
-                            else if (m.kind === SyntaxKind.MethodDeclaration) {
-                                emitMethod(<MethodDeclaration>m)
-                                if (m != members[members.length-1]) {
-                                    write(",");
-                                }
+                                    break;
                             }
                         });                        
+                        if (nodesToProcess.some(e => e)) {
+                            write(',');
+                        }
+                        writeLine();                        
                     }
             
                     function emitObject(name: string, members: Declaration[]) {
@@ -5993,31 +6336,89 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                         //sencha cmd support > change ST to Ext > useful in projects with desktop an mobile app
                         if (parts[0] === 'ST'){
                             parts[0] = 'Ext';
+                            return parts.join(".");
                         }
-                        return parts.join('.');
+                        return name;
                     }
                 }
-            }
 
-            //@extjsemitter helper ///https://github.com/Microsoft/TypeScript/issues/1255
-            function getTypeNodeFullName(node : TypeNode) :  string {
-                var type = resolver.getTypeFromTypeNode(node);
-                var name : string;
-                
-                if (type && type.symbol){
-                    name = resolver.getFullyQualifiedName(type.symbol)
-                }
-                else {
-                    var links = resolver.getNodeLinks(node);
-                    if(links && links.resolvedSymbol){
-                        name = resolver.getFullyQualifiedName(links.resolvedSymbol);
+                function getModulePath(node : Node) :  string {
+                    let modulePath: string;
+                    let nameNode = getExternalModuleName(node);
+                    if (nameNode) {
+                        let nameNodeName = getExternalModuleNameText(<ImportDeclaration>node); 
+                        nameNodeName = nameNodeName.replace(/^\"|\"$/g, "");
+                        let sourceFile = getSourceFileOfNode(nameNode);
+                        let fileName = sourceFile.fileName.substr(0, sourceFile.fileName.lastIndexOf(directorySeparator)) + directorySeparator + nameNodeName;
+                        modulePath = fileName.slice(compilerOptions.namespaceRoot.length + 1).replace(/\/|\\/g, ".");
                     }
+                    else {
+                        var name : string;
+                        var parts: string[];
+                        var relativePath: string;
+    
+                        var type = resolver.getTypeFromTypeNode(<TypeNode>node);
+                        
+                        if (type && type.symbol) {
+                            name = resolver.getFullyQualifiedName(type.symbol)
+                        }
+                        else {
+                            let links = resolver.getNodeLinks(node);
+                            if(links && links.resolvedSymbol) {
+                                name = resolver.getFullyQualifiedName(links.resolvedSymbol);
+                            }
+                        }                    
+                        
+                        if (!name || !name.split) {
+                            write(`name: ${name}, can't continue;`);
+                            return "UnknownType";
+                        }
+                        // The name could be something like "tests/cases/conformance/extjs/TableTennis/Equipments/BladeMaterial".BladeMaterial
+                        parts = name.split('.');
+                        relativePath = parts[0].slice(1, parts[0].length - 1);
+                        // write(`compilerOptions.namespaceRoot = ${compilerOptions.namespaceRoot}`);
+                        // writeLine();
+                        // write(`relativePath: ${relativePath}`);
+                        // writeLine();
+                        // write(`indexOf: ${relativePath.indexOf(compilerOptions.namespaceRoot)}`);
+                        if (relativePath.indexOf(compilerOptions.namespaceRoot) !== -1) {
+                            modulePath = relativePath.slice(compilerOptions.namespaceRoot.length + 1).replace(/\/|\\/g, ".");
+                        }
+                        else {
+                            //TODO Not complete
+                            var xname = parts.pop();
+                            relativePath = parts.join('.');
+                            var fullPath = sys.resolvePath(relativePath) + "." + xname;
+                            write(`name: ${name}, fullPath: ${fullPath}`);
+                            writeLine();
+                            var namespaceRoot = host.getNamespaceRoot();
+                            modulePath = fullPath.slice(namespaceRoot.length + 1, fullPath.length).replace(/\/|\\/g, ".");
+                            if (modulePath.indexOf(".") > 0) {
+                                // If the modulePath is not global (i.e. no namespace), Caps the first letter.
+                                modulePath = modulePath.charAt(0).toUpperCase() + modulePath.slice(1);
+                            }
+                            
+                            // writeLines(`getTypeNodeFullName: name = ${name}, namespaceRoot = ${namespaceRoot}, modulePath = ${modulePath}`);                                    
+                        }                        
+                    }
+                    
+                    return modulePath;
+                }
+
+                function changeClassFullNameToCmdSupport(name : string) : string;
+                function changeClassFullNameToCmdSupport(parts : string[]) : string;
+                function changeClassFullNameToCmdSupport(name : any) : string {
+                    var parts : string[] = name.split ? name.split('.') : name;
+                    //sencha cmd support > change ST to Ext > useful in projects with desktop an mobile app
+                    if(parts[0] === 'ST'){
+                        parts[0] = 'Ext';
+                    }
+                    return parts.join('.');
                 }
                 
-                return name;
             }
 
-            function getModulePath(filename: string) {
+            function getFileNamespace(filename: string) {
                 var namespaceRoot = host.getNamespaceRoot();
                 var filePath = sys.resolvePath(filename);
                 var modulePath = filePath.slice(namespaceRoot.length + 1, filePath.length - 3).replace(/\/|\\/g, ".");
@@ -6083,10 +6484,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                 // Start new file on new line
                 writeLine();
                 emitDetachedComments(node);
+                
+                if (compilerOptions.module === ModuleKind.ExtJS5) {
+                    // Ext module is completely different then other code.
+                    emitExtJS5Module(node);
+                    emitLeadingComments(node.endOfFileToken);
+                    return;
+                }
 
                 // emit prologue directives prior to __extends
                 var startIndex = emitDirectivePrologues(node.statements, /*startWithNewLine*/ false);
-
+                // writeLines(`emitSourceFileNode, extendsEmitted? ${extendsEmitted}`);
                 // Only emit helpers if the user did not say otherwise.
                 if (!compilerOptions.noEmitHelpers) {
                     // Only Emit __extends function when target ES5.
@@ -6122,9 +6530,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
                     }
                     else if (compilerOptions.module === ModuleKind.UMD) {
                         emitUMDModule(node, startIndex);
-                    }
-                    else if (compilerOptions.module === ModuleKind.ExtJS5) {
-                        emitExtJS5Module(node, startIndex);
                     }
                     else {
                         emitCommonJSModule(node, startIndex);

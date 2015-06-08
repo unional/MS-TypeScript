@@ -1,0 +1,20 @@
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BladeMaterial.ts ===
+
+/**
+ * The base blade material class.
+ */
+export default class BladeMaterial {
+>BladeMaterial : BladeMaterial
+
+	stiffness: number
+>stiffness : number
+
+	hardness: number = 100
+>hardness : number
+>100 : number
+
+	constructor(public name: string) {
+>name : string
+	}
+}
+

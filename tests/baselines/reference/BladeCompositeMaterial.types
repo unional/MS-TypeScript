@@ -1,0 +1,38 @@
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BladeCompositeMaterial.ts ===
+import BladeSSMaterial from "BladeMaterial";
+>BladeSSMaterial : typeof BladeSSMaterial
+
+/**
+ * Composite material for blade.
+ */
+export default class BladeCompositeMaterial extends BladeSSMaterial {
+>BladeCompositeMaterial : BladeCompositeMaterial
+>BladeSSMaterial : BladeSSMaterial
+
+	constructor(public name: string) {
+>name : string
+
+		super(name);
+>super(name) : void
+>super : typeof BladeSSMaterial
+>name : string
+	}
+}
+
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BladeMaterial.ts ===
+/**
+ * The base blade material class.
+ */
+export default class BladeMaterial {
+>BladeMaterial : BladeMaterial
+
+	stiffness: number
+>stiffness : number
+
+	hardness: number
+>hardness : number
+
+	constructor(public name: string) {
+>name : string
+	}
+}

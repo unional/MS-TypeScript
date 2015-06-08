@@ -1,0 +1,41 @@
+=== tests/cases/conformance/extjs/SinkClass.ts ===
+
+/**
+ * File comments
+ */
+export default class SimpleClass {
+>SimpleClass : Symbol(SimpleClass, Decl(SinkClass.ts, 0, 0))
+
+	constructor(public name?: string){}
+>name : Symbol(name, Decl(SinkClass.ts, 5, 13))
+
+	static staticMethod() { }
+>staticMethod : Symbol(SimpleClass.staticMethod, Decl(SinkClass.ts, 5, 36))
+
+	static staticProp: string = "abc"
+>staticProp : Symbol(SimpleClass.staticProp, Decl(SinkClass.ts, 6, 26))
+
+	static staticProp2: number = 3
+>staticProp2 : Symbol(SimpleClass.staticProp2, Decl(SinkClass.ts, 7, 34))
+
+	public mixins = {
+>mixins : Symbol(mixins, Decl(SinkClass.ts, 8, 31))
+
+		"nameA": "a.b.c",
+		"nameB": "b.c.d"
+	}
+	private privateProp: string
+>privateProp : Symbol(privateProp, Decl(SinkClass.ts, 12, 2))
+
+	private privateProp2 = "privateProp2"
+>privateProp2 : Symbol(privateProp2, Decl(SinkClass.ts, 13, 28))
+
+	private privateMethod() {}
+>privateMethod : Symbol(privateMethod, Decl(SinkClass.ts, 14, 38))
+
+	publicMethod() {}
+>publicMethod : Symbol(publicMethod, Decl(SinkClass.ts, 15, 27))
+
+	publicProp = 4
+>publicProp : Symbol(publicProp, Decl(SinkClass.ts, 16, 18))
+}

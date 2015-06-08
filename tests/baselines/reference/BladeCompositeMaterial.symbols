@@ -1,0 +1,37 @@
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BladeCompositeMaterial.ts ===
+import BladeSSMaterial from "BladeMaterial";
+>BladeSSMaterial : Symbol(BladeSSMaterial, Decl(BladeCompositeMaterial.ts, 0, 6))
+
+/**
+ * Composite material for blade.
+ */
+export default class BladeCompositeMaterial extends BladeSSMaterial {
+>BladeCompositeMaterial : Symbol(BladeCompositeMaterial, Decl(BladeCompositeMaterial.ts, 0, 44))
+>BladeSSMaterial : Symbol(BladeSSMaterial, Decl(BladeCompositeMaterial.ts, 0, 6))
+
+	constructor(public name: string) {
+>name : Symbol(name, Decl(BladeCompositeMaterial.ts, 6, 13))
+
+		super(name);
+>super : Symbol(BladeSSMaterial, Decl(BladeMaterial.ts, 0, 0))
+>name : Symbol(name, Decl(BladeCompositeMaterial.ts, 6, 13))
+	}
+}
+
+=== tests/cases/conformance/extjs/TableTennis/Equipments/BladeMaterial.ts ===
+/**
+ * The base blade material class.
+ */
+export default class BladeMaterial {
+>BladeMaterial : Symbol(BladeMaterial, Decl(BladeMaterial.ts, 0, 0))
+
+	stiffness: number
+>stiffness : Symbol(stiffness, Decl(BladeMaterial.ts, 3, 36))
+
+	hardness: number
+>hardness : Symbol(hardness, Decl(BladeMaterial.ts, 4, 18))
+
+	constructor(public name: string) {
+>name : Symbol(name, Decl(BladeMaterial.ts, 6, 13))
+	}
+}
